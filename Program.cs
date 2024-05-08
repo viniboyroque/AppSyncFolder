@@ -11,21 +11,23 @@ class Program
         Console.Write("Enter source folder path: ");
         string sourcePath = Console.ReadLine();
 
-        Console.Write("Enter replica folder path: ");
+        Console.Write("Enter replica folder path (new folder will be created if it does not exist): ");
         string replicaPath = Console.ReadLine();
 
-        Console.Write("Enter log file path: ");
+        Console.Write("Enter log file path (new file will be created if it does not exist): ");
         string logFilePath = Console.ReadLine();
 
         Console.WriteLine("Enter the synchronization interval in seconds:");
         int syncInterval = int.Parse(Console.ReadLine());
 
+        //Check if paths are valid or not
         if (string.IsNullOrWhiteSpace(sourcePath) || string.IsNullOrWhiteSpace(replicaPath))
         {
             Console.WriteLine("Invalid folder paths. Please provide valid paths.");
             return;
         }
 
+        //Run synchronization
         FolderSynchronizer synchronizer = new FolderSynchronizer(sourcePath, replicaPath, syncInterval, logFilePath);
         synchronizer.StartSynchronization();
 
@@ -53,10 +55,11 @@ class Program
             replicaPath = replica;
             logFilePath = logFile;
             syncTimer = new Timer();
-            syncTimer.Interval = TimeSpan.FromSeconds(syncInterval).TotalMilliseconds; // Set synchronization interval (e.g., 30 secs)
+            syncTimer.Interval = TimeSpan.FromSeconds(syncInterval).TotalMilliseconds; // Set synchronization interval 
             syncTimer.Elapsed += SyncTimerElapsed;
         }
 
+        //Start and Stop program
         public void StartSynchronization()
         {
             syncTimer.Start();
@@ -68,6 +71,7 @@ class Program
 
         private void SyncTimerElapsed(object sender, ElapsedEventArgs e)
         {
+            LogAction("");
             SyncFolders();
             Console.WriteLine("Folders synchronized at " + DateTime.Now);
         }
@@ -81,8 +85,6 @@ class Program
                 Directory.CreateDirectory(replicaPath);
             }
 
-            // Copy contents from source to replica
-            CopyContents(sourcePath, replicaPath);
 
             // Synchronize folders using MD5 hashes
             SynchronizeFolders(sourcePath, replicaPath);
@@ -95,26 +97,22 @@ class Program
             }
     }
 
-        static void CopyContents(string sourcePath, string replicaPath)
-        {
-
-        
-        
-            foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
-            {
-                Directory.CreateDirectory(dirPath.Replace(sourcePath, replicaPath));
-                LogAction($"Directory created: {dirPath.Replace(sourcePath, replicaPath)}");
-            }
-
-            foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
-            {
-                File.Copy(newPath, newPath.Replace(sourcePath, replicaPath), true);
-                LogAction($"File copied: {newPath} to {newPath.Replace(sourcePath, replicaPath)}");
-            }
-        }
+       
 
     static void SynchronizeFolders(string sourcePath, string replicaPath)
     {
+        
+        foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
+        {
+            if (!Directory.Exists(dirPath.Replace(sourcePath, replicaPath)))
+            {
+                Directory.CreateDirectory(dirPath.Replace(sourcePath, replicaPath));
+                LogAction($"Directory created: {dirPath.Replace(sourcePath, replicaPath)}"); ;
+            }
+            
+            
+        }
+
         string[] sourceFiles = Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories);
         string[] replicaFiles = Directory.GetFiles(replicaPath, "*.*", SearchOption.AllDirectories);
 
@@ -132,7 +130,7 @@ class Program
                 if (sourceHash != replicaHash)
                 {
                     File.Copy(sourceFile, replicaFile, true);
-                    LogAction($"File copied: {sourceFile} to {replicaFile}");
+                    LogAction($"File overwriting: {sourceFile} to {replicaFile}");
                 }
             }
             else
@@ -156,7 +154,6 @@ class Program
         }
 
         // Delete folders in replica not present in source
-        //string[] sourceDirs = Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories);
         string[] replicaDirs = Directory.GetDirectories(replicaPath, "*", SearchOption.AllDirectories);
 
         foreach (string replicaDir in replicaDirs)
