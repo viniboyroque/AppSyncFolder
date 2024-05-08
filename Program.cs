@@ -42,42 +42,42 @@ class Program
     
 
 
-    class FolderSynchronizer
+class FolderSynchronizer
+{
+    private string sourcePath;
+    private string replicaPath;
+    static string logFilePath;
+    private Timer syncTimer;
+
+    public FolderSynchronizer(string source, string replica, int syncInterval, string logFile)
     {
-        private string sourcePath;
-        private string replicaPath;
-        static string logFilePath;
-        private Timer syncTimer;
+        sourcePath = source;
+        replicaPath = replica;
+        logFilePath = logFile;
+        syncTimer = new Timer();
+        syncTimer.Interval = TimeSpan.FromSeconds(syncInterval).TotalMilliseconds; // Set synchronization interval 
+        syncTimer.Elapsed += SyncTimerElapsed;
+    }
 
-        public FolderSynchronizer(string source, string replica, int syncInterval, string logFile)
-        {
-            sourcePath = source;
-            replicaPath = replica;
-            logFilePath = logFile;
-            syncTimer = new Timer();
-            syncTimer.Interval = TimeSpan.FromSeconds(syncInterval).TotalMilliseconds; // Set synchronization interval 
-            syncTimer.Elapsed += SyncTimerElapsed;
-        }
+    //Start and Stop program
+    public void StartSynchronization()
+    {
+        syncTimer.Start();
+        Console.WriteLine("Periodic synchronization started. Press any key to stop.");
+        Console.ReadKey();
+        syncTimer.Stop();
+        Console.WriteLine("Periodic synchronization stopped.");
+    }
 
-        //Start and Stop program
-        public void StartSynchronization()
-        {
-            syncTimer.Start();
-            Console.WriteLine("Periodic synchronization started. Press any key to stop.");
-            Console.ReadKey();
-            syncTimer.Stop();
-            Console.WriteLine("Periodic synchronization stopped.");
-        }
+    private void SyncTimerElapsed(object sender, ElapsedEventArgs e)
+    {
+        LogAction("");
+        SyncFolders();
+        Console.WriteLine("Folders synchronized at " + DateTime.Now);
+    }
 
-        private void SyncTimerElapsed(object sender, ElapsedEventArgs e)
-        {
-            LogAction("");
-            SyncFolders();
-            Console.WriteLine("Folders synchronized at " + DateTime.Now);
-        }
-
-        public void SyncFolders()
-        {
+    public void SyncFolders()
+    {
         try { 
             // Check if replica folder exists, create if not
             if (!Directory.Exists(replicaPath))
@@ -94,7 +94,7 @@ class Program
             catch (Exception ex)
             {
             Console.WriteLine("Error synchronizing folders: " + ex.Message);
-            }
+        }
     }
 
        
